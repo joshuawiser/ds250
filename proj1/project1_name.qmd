@@ -1,0 +1,254 @@
+---
+title: "Client Report - Project 1: What's in a Name?"
+subtitle: "Course DS 250"
+author: "Joshua Wiser"
+format:
+  html:
+    self-contained: true
+    page-layout: full
+    title-block-banner: true
+    toc: true
+    toc-depth: 3
+    toc-location: body
+    number-sections: false
+    html-math-method: katex
+    code-fold: false
+    code-summary: "Show the code"
+    code-overflow: wrap
+    code-copy: hover
+    code-tools:
+        source: false
+        toggle: true
+        caption: See code
+    
+---
+
+```{python}
+# | label: libraries
+# | include: false
+import pandas as pd
+import altair as alt
+import numpy as np
+import datetime as dt
+
+from IPython.display import Markdown
+from IPython.display import display
+from tabulate import tabulate
+
+```
+
+
+## Elevator pitch
+
+Based on the data given I was able to find the popularity of my name hit it's peak 10 years before my birth year and has been slightly decreasing since. I have also found that typically, somebody named Brittany will be around 33 or 34 years old today. The Christian names Peter, Paul, Mary, and Martha all saw slight increase from 1910 to 1920, and a larger increase from 1935 to 1955, and have been decreasing in popularity since then. Finally, the popularity of the name Luke tripled directly after the release of the first Star Wars movie, and doubled again at the release of the Prequels in the early 2000's. 
+
+```{python}
+# | label: project data
+# | code-summary: Read and format project data
+# Include and execute your code here
+url = "https://raw.githubusercontent.com/byuidatascience/data4names/master/data-raw/names_year/names_year.csv"
+
+df = pd.read_csv(url)
+```
+
+__Highlight the grand questions__
+
+## GRAND QUESTION 1
+
+How does your name at your birth year compare to its use historically?
+
+In my research, my name was most popular 10 years before my birth year. After that peak, there was a sudden drop for two years, and then a more steady decline going donw to my birth year with an outlying peak in the year 1997 and the year 2000 (my birth year). I made sure to highlight my birth year in this bar chart so that it is easy to pick out of the graph and compare to the surrounding years.
+
+```{python}
+# | label: GQ1
+# | code-summary: Read and format data
+# Include and execute your code here
+name = "Joshua"
+name_df = df[df["name"] == name]
+```
+
+In the year 2000 there were 25863 people named Joshua while in 1999 there were only 24199 and in 2001 only 23286.
+
+```{python}
+# | label: GQ1 chart
+# | code-summary: plot example
+# | fig-cap: "My useless chart"
+# | fig-align: center
+# Include and execute your code here
+chart = (
+    alt.Chart(name_df, title="Popularity of the name Joshua")
+    .encode(
+        alt.X(
+            "year:N",
+            axis=alt.Axis(values=np.arange(1900, 2020, step=5).tolist()),
+            scale=alt.Scale(zero=False),
+        ),
+        alt.Y("Total"),
+        color=alt.condition(
+            alt.datum.year == 2000, alt.value("black"), alt.value("#0077b6")
+        ),
+    )
+    .mark_bar()
+    .properties(width=600, height=400)
+)
+
+chart
+```
+
+
+```{python}
+# | label: GQ1 table
+# | code-summary: table example
+# | tbl-cap: "Not much of a table"
+# | tbl-cap-location: top
+# Include and execute your code here
+filtered_df = df[(df["name"] == "Joshua") & (df["year"] >= 1995) & (df["year"] <= 2015)]
+
+total_by_year = filtered_df.groupby("year")["Total"].sum().reset_index()
+
+display(total_by_year)
+```
+
+
+## GRAND QUESTION 2
+
+If you talked to someone named Brittany on the phone, what is your guess of his or her age? What ages would you not guess?
+
+If I were to talk to someone named Brittany without seeing them, I would guess they are around 34 or 33 years old. Those two ages stood above all others by a decent margin.
+
+```{python}
+# | label: GQ2
+# | code-summary: Read and format data
+# Include and execute your code here
+current_year = dt.datetime.now().year
+name_2 = "Brittany"
+name_2_df = df[df["name"] == name_2].copy()
+name_2_df.loc[:, "age"] = (
+    current_year - name_2_df["year"]
+)  # Use .loc to create 'age' column
+
+
+```
+
+The following chart shows that while there are around 32500 33 year old people named Brittany, and just under 31000 34 year olds named Brittany, the surrounding ages of 32 and 35 have under 27000 people named Brittany.
+
+```{python}
+# | label: GQ2 chart
+# | code-summary: plot example
+# | fig-cap: "My useless chart"
+# | fig-align: center
+# Include and execute your code here
+chart2 = (
+    alt.Chart(name_2_df, title="Brittany age chart")
+    .encode(
+        alt.X(
+            "age:N",
+            axis=alt.Axis(values=np.arange(0, 100).tolist()),
+            scale=alt.Scale(zero=False),
+        ),
+        alt.Y("Total"),
+        color="Total",
+    )
+    .mark_bar()
+    .properties(width=600, height=400)
+)
+
+chart2
+```
+
+
+
+## GRAND QUESTION 3
+
+Mary, Martha, Peter, and Paul are all Christian names. From 1920 - 2000, compare the name usage of each of the four names. What trends do you notice?
+
+These names all have similar trends, with one of them (mary) being much more exaggerated than the others. They all seem to have an upward trend from 1910 to 1920. From there it goes slightly downward until a larger upward trend from 1935 to 1955 followed by a steeper drop.
+
+```{python}
+# | label: GQ3
+# | code-summary: Read and format data
+# Include and execute your code here
+name1 = "Peter"
+name2 = "Mary"
+name3 = "Martha"
+name4 = "Paul"
+
+names_df = df[df["name"].isin([name1, name2, name3, name4])]
+
+names_df
+
+names_df = names_df[names_df["year"] <= 2000]
+
+```
+
+It seems a spike started around 1910 for all of these Christian names, and Mary specifically became a very popular name within 10 years. Mary was followed in popularity by Paul, but the popularity of Mary still doubled the popularity of Paul at its highest point.
+
+```{python}
+# | label: GQ3 chart
+# | code-summary: plot example
+# | fig-cap: "My useless chart"
+# | fig-align: center
+# Include and execute your code here
+chart3 = (
+    alt.Chart(names_df, title="Mary, Martha, Peter and Paul")
+    .encode(
+        alt.X(
+            "year:N",
+            axis=alt.Axis(values=np.arange(1910, 2005, step=5).tolist()),
+            scale=alt.Scale(zero=False),
+        ),
+        alt.Y("Total"),
+        color="name",
+    )
+    .mark_line()
+    .properties(width=600, height=400)
+)
+chart3
+```
+
+## GRAND QUESTION 4
+
+Think of a unique name from a famous movie. Plot the usage of that name and see how changes line up with the movie release. Does it look like the movie had an effect on usage?
+
+I used the name "Luke" with the "Star Wars" movie saga in mind. It did seem like there may be some link between the popularity of the name and the release and popularity of these movies. 
+
+```{python}
+# | label: GQ4
+# | code-summary: Read and format data
+# Include and execute your code here
+star_wars_name = "Luke"
+sw_df = df[df["name"] == star_wars_name]
+```
+
+The initial spike of the name Luke occured in the late 70's and early 80's which is when the first Star Wars movies were released. Later there were sequel movies released and there was another spike in the name's popularity. This could be linked either to the release of the prequels themselves, or the fact that the children who were fans of Star Wars in the 80's were starting to have kids of their own and name them Luke.
+
+```{python}
+# | label: GQ4 chart
+# | code-summary: plot example
+# | fig-cap: "My useless chart"
+# | fig-align: center
+# Include and execute your code here
+chart4 = (
+    alt.Chart(sw_df, title="Star Wars Effect on the Name Luke")
+    .encode(
+        alt.X(
+            "year:N",
+            axis=alt.Axis(values=np.arange(1900, 2020, step=5).tolist()),
+            scale=alt.Scale(zero=False),
+        ),
+        alt.Y("Total"),
+        color="Total",
+    )
+    .mark_bar()
+    .properties(width=600, height=400)
+)
+chart4
+```
+
+
+
+## APPENDIX A (Additional Python Code)
+
+```python
+#No additional code to show.
+```

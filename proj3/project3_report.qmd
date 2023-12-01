@@ -1,0 +1,257 @@
+---
+title: "Client Report - Finding Relationships in Baseball"
+subtitle: "Course DS 250"
+author: "Joshua Wiser"
+format:
+  html:
+    self-contained: true
+    page-layout: full
+    title-block-banner: true
+    toc: true
+    toc-depth: 3
+    toc-location: body
+    number-sections: false
+    html-math-method: katex
+    code-fold: true
+    code-summary: "Show the code"
+    code-overflow: wrap
+    code-copy: hover
+    code-tools:
+        source: false
+        toggle: true
+        caption: See code
+    
+---
+
+```{python}
+# | label: libraries
+# | include: false
+import pandas as pd
+import altair as alt
+import numpy as np
+import sqlite3
+
+```
+
+
+## Elevator pitch
+
+In this project, I was able to create a dataframe in order to display information about baseball players who attended BYU. I was also able to show the top 5 players by a specific years batting average with at least 1 at bat that year, and those with at least 10 at bats as well. I then found the top 5 career batting averages for any players with at least 100 total at bats. Finally I was able to compare the Boston Red Socks and the New York Yankees in how many times they have been in the league top 5 in franchise history.
+
+```{python}
+# | label: project data
+# | code-summary: Read and format project data
+# Include and execute your code here
+sqlite_file = "C:\Fall 23\ds250\proj3\lahmansbaseballdb.sqlite"
+con = sqlite3.connect(sqlite_file)
+```
+
+__Highlight the grand questions__
+
+## GRAND QUESTION 1
+
+Write an SQL query to create a new dataframe about baseball players who attended BYU-Idaho. The new table should contain five columns: playerID, schoolID, salary, and the yearID/teamID associated with each salary. Order the table by salary (highest to lowest) and print out the table in your report.
+
+For this problem I was able to see that the top salaried player was higher than all other players in salary for 4 seperate years. I was also able to easily see from the data that anyone who graduated BYU and was able to play in the MLB had a salary at or over $60,000.
+
+```{python}
+# | label: GQ1
+# | code-summary: Read and format data
+# Include and execute your code here
+question_one_query = """
+    SELECT
+        p.playerID,
+        cp.schoolID,
+        s.salary,
+        s.yearID,
+        s.teamID
+    FROM
+        people p
+        JOIN collegeplaying cp ON p.playerID = cp.playerID
+        JOIN salaries s ON p.playerID = s.playerID
+    WHERE
+        cp.schoolID = 'byu'
+    ORDER BY
+        s.salary DESC;
+"""
+
+```
+
+
+
+```{python}
+# | label: GQ1 chart
+# | code-summary: plot example
+# | fig-cap: "My useless chart"
+# | fig-align: center
+# Include and execute your code here
+df = pd.read_sql_query(question_one_query, con)
+df
+```
+
+
+## GRAND QUESTION 2
+
+This three-part question requires you to calculate batting average (number of hits divided by the number of at-bats)
+    Write an SQL query that provides playerID, yearID, and batting average for players with at least 1 at bat that year. Sort the table from highest batting average to lowest, and then by playerid alphabetically. Show the top 5 results in your report.
+    Use the same query as above, but only include players with at least 10 at bats that year. Print the top 5 results.
+    Now calculate the batting average for players over their entire careers (all years combined). Only include players with at least 100 at bats, and print the top 5 results.
+
+Through this analasys I was able to calculate the batting average for players. In part 1 I was able to find all players with at least 1 at bat in the year and rank them from highest batting average to lowest, and by player ID. In part two I did a similar analasys, but with all players who had at least 10 at bats. Finally in part 3 I was able to find players career batting average as long as they had at least 100 career at bats. I found that the less at bats one person has, the easier it is for them to get a high batting average. I'm sure if I looked at the other end of the data I would see players with less at bats are also more common to get a 0 batting average.
+
+```{python}
+# | label: GQ2
+# | code-summary: Read and format data
+# Include and execute your code here
+part_one_query = """
+    SELECT
+        b.playerID,
+        b.yearID,
+        CAST(SUM(b.H) AS REAL) / SUM(b.AB) AS batting_average
+    FROM
+        batting b
+    GROUP BY
+        b.playerID, b.yearID
+    HAVING
+        SUM(b.AB) >= 1
+    ORDER BY
+        batting_average DESC, b.playerID
+    LIMIT 5;
+"""
+part_two_query = """
+    SELECT
+        b.playerID,
+        b.yearID,
+        CAST(SUM(b.H) AS REAL) / SUM(b.AB) AS batting_average
+    FROM
+        batting b
+    GROUP BY
+        b.playerID, b.yearID
+    HAVING
+        SUM(b.AB) >= 10
+    ORDER BY
+        batting_average DESC, b.playerID
+    LIMIT 5;
+"""
+part_three_query = """
+    SELECT
+        b.playerID,
+        CAST(SUM(b.H) AS REAL) / SUM(b.AB) AS career_batting_average
+    FROM
+        batting b
+    GROUP BY
+        b.playerID
+    HAVING
+        SUM(b.AB) >= 100
+    ORDER BY
+        career_batting_average DESC
+    LIMIT 5;
+"""
+```
+
+
+```{python}
+# | label: GQ2 chart
+# | code-summary: plot example
+# | fig-cap: "My Table"
+# | fig-align: center
+# Include and execute your code here
+df1 = pd.read_sql_query(part_one_query, con)
+df1
+```
+
+
+```{python}
+# | label: GQ2 chart
+# | code-summary: plot example
+# | fig-cap: "My Table"
+# | fig-align: center
+# Include and execute your code here
+df2 = pd.read_sql_query(part_two_query, con)
+df2
+```
+
+```{python}
+# | label: GQ2 chart
+# | code-summary: plot example
+# | fig-cap: "My Table"
+# | fig-align: center
+# Include and execute your code here
+df3 = pd.read_sql_query(part_three_query, con)
+df3
+```
+
+## GRAND QUESTION 3
+
+Pick any two baseball teams and compare them using a metric of your choice (average salary, home runs, number of wins, etc). Write an SQL query to get the data you need, then make a graph in Altair to visualize the comparison. What do you learn?
+
+For this, I chose to compare the Boston Red Sox and the New York Yankees. The metric I chose to compare on was the frequency of time that they have been in the leagues top 5 throughout their franchise history. Through this comparison I found that the Yankees had won 99 and the Red Sox had won 86.
+
+```{python}
+# | label: GQ3
+# | code-summary: Read and format data
+# Include and execute your code here
+q_three_query = """
+SELECT
+    t.teamID,
+    t.name AS team_name,
+    COUNT(*) AS num_top_5_rank
+FROM
+    teams t
+WHERE
+    t.teamID IN ('BOS', 'NYA') 
+    AND (t.name = 'Boston Red Sox' OR t.name = 'New York Yankees')
+    AND t.teamRank <= 5
+GROUP BY
+    t.teamID, team_name;
+
+
+"""
+
+```
+
+
+
+```{python}
+# | label: GQ3 chart
+# | code-summary: plot example
+# | fig-cap: "My useless chart"
+# | fig-align: center
+# Include and execute your code here
+df4 = pd.read_sql_query(q_three_query, con)
+df4
+
+```
+
+
+```{python}
+# | label: GQ3 table
+# | code-summary: table example
+# | tbl-cap: "Not much of a table"
+# | tbl-cap-location: top
+# Include and execute your code here
+chart = (
+    alt.Chart(df4)
+    .mark_bar()
+    .encode(x="team_name", y="num_top_5_rank", color="team_name")
+    .properties(title="Frequency of Top 5 Rankings Comparison")
+)
+
+
+chart
+```
+
+
+
+## APPENDIX A (Additional Python Code)
+
+```python
+results = pd.read_sql_query("SELECT * FROM teams", con)
+results
+
+table = pd.read_sql_query("SELECT * FROM sqlite_master WHERE type='table'", con)
+print(table.filter(["name"]))
+print("\n\n")
+# 8 is collegeplaying
+print(table.sql[24])
+```
