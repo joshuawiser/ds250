@@ -2,7 +2,6 @@ import pandas as pd
 import altair as alt
 import streamlit as st
 
-
 file = "C:/Fall 23/ds250/agent_state_project/Agent State Summary by State 231130_192802.csv"
 df = pd.read_csv(file)
 
@@ -22,6 +21,9 @@ df = df.rename(
     }
 )
 
+df["acw"] = pd.to_timedelta(df["acw"]).dt.total_seconds() / 60  # Convert to minutes
+df["acw"] = df["acw"].astype(float)  # Explicitly convert to float
+
 st.set_page_config(layout="wide")
 st.header("Agent Reason Code Summary")
 
@@ -29,9 +31,11 @@ agent_list = df["agent"].tolist()
 agent_list.insert(0, "All")
 agent_list.insert(1, "Team Josh")
 
-
 agent_selection = st.multiselect(
-    "", agent_list, placeholder="Select Agent(s) or Team(s)"
+    "select",
+    agent_list,
+    placeholder="Select Agent(s) or Team(s)",
+    label_visibility="hidden",
 )
 team_josh = ["Joshua Wiser", "Kyle Rasmussen", "Josh Smith"]
 if "All" in agent_selection:
@@ -42,3 +46,6 @@ else:
     select_df = df[df["agent"].isin(agent_selection)]
 
 st.dataframe(select_df, use_container_width=True, hide_index=True)
+st.bar_chart(
+    select_df, x="agent", y="acw", use_container_width=False, width=750, height=500
+)
